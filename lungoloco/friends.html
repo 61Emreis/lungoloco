@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Arkadaşlar - Lungoloco</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      .friends-container {
+        max-width: 600px;
+        margin: 3rem auto;
+        background-color: #003f5f;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.6s ease;
+        color: #e0f7fa;
+      }
+      .friend,
+      .search-result {
+        background-color: #005377;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: transform 0.3s;
+      }
+      .friend:hover,
+      .search-result:hover {
+        transform: scale(1.03);
+      }
+      .friend-idle {
+        flex-grow: 1;
+      }
+      .friend button,
+      .search-result button {
+        background-color: #4caf50;
+        border: none;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      .friend button:hover,
+      .search-result button:hover {
+        background-color: #45a049;
+      }
+      .search-bar {
+        display: flex;
+        margin-bottom: 1.5rem;
+      }
+      .search-bar input {
+        flex-grow: 1;
+        padding: 0.5rem;
+        border-radius: 8px 0 0 8px;
+        border: none;
+        font-size: 1rem;
+      }
+      .search-bar button {
+        padding: 0.5rem 1rem;
+        border: none;
+        background-color: #4caf50;
+        color: white;
+        border-radius: 0 8px 8px 0;
+        cursor: pointer;
+        font-size: 1rem;
+      }
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+       <h1><a href="index.html" class="logo-link">Lungoloco</a></h1>
+      <nav>
+        <a href="index.html">Anasayfa</a>
+        <a href="lesson.html">Dersler</a>
+        <a href="quiz.html">Quiz</a>
+        <a href="profile.html">Profil</a>
+        <a href="sirala.html">Sıralamalar</a>
+        <a href="auth.html" onclick="return logoutUser()">Çıkış Yap</a>
+      </nav>
+    </header>
+
+    <div class="friends-container">
+      <h2>Arkadaş Listesi</h2>
+
+      <div class="search-bar">
+        <input id="friendSearch" type="text" placeholder="Kullanıcı adı ara..." />
+        <button id="searchBtn">Ara</button>
+      </div>
+
+      <div id="searchResults"></div>
+
+      <div id="friendsList"></div>
+    </div>
+
+    <footer>&copy; 2025 Lungoloco. Tüm hakları saklıdır.</footer>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+      import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+      import {
+        getDatabase,
+        ref,
+        get,
+        set,
+        onValue,
+        query,
+        orderByChild,
+        equalTo,
+      } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+      // Firebase yapılandırması
+      const firebaseConfig = {
+        apiKey: "AIzaSyDrE4teIGAHWsqrx_CjWIoqeb2tSWphyY8",
+        authDomain: "lungoloco-b1005.firebaseapp.com",
+        projectId: "lungoloco-b1005",
+        storageBucket: "lungoloco-b1005.firebasestorage.app",
+        messagingSenderId: "325454308006",
+        appId: "1:325454308006:web:44149848db69002cc8ca67",
+        measurementId: "G-R20ZS0WN7X",
+      };
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getDatabase(app);
+
+    window.logoutUser = () => {
+  signOut(auth).then(() => (window.location.href = "auth.html"));
+  return false;
+};
+
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) return (window.location.href = "auth.html");
+        const uid = user.uid;
+        const userRef = ref(db, `users/${uid}`);
+        const friendsRef = ref(db, `users/${uid}/friends`);
+        const usersRef = ref(db, `users`);
+
+        const friendsListEl = document.getElementById("friendsList");
+        const searchInput = document.getElementById("friendSearch");
+        const searchBtn = document.getElementById("searchBtn");
+        const searchResults = document.getElementById("searchResults");
+
+        // Mevcut arkadaşları listele
+        const renderFriends = async () => {
+          friendsListEl.innerHTML = "";
+          const snap = await get(friendsRef);
+          const friends = snap.val() || {};
+          for (const friendUID of Object.keys(friends)) {
+            const fSnap = await get(ref(db, `users/${friendUID}`));
+            const fData = fSnap.val() || {};
+            const div = document.createElement("div");
+            div.className = "friend";
+            div.innerHTML = `
+            <span>👤 ${fData.name || "–"}</span>
+            <span>Puan: ${fData.score || 0}</span>
+          `;
+            friendsListEl.append(div);
+          }
+        };
+
+        // Arama & ekleme
+        searchBtn.addEventListener("click", async () => {
+          const name = searchInput.value.trim();
+          searchResults.innerHTML = "";
+          if (!name) return;
+          // Sorgu
+          const q = query(usersRef, orderByChild("name"), equalTo(name));
+          const snap = await get(q);
+          if (!snap.exists()) {
+            searchResults.textContent = "Kullanıcı bulunamadı.";
+            return;
+          }
+          snap.forEach((uSnap) => {
+            const key = uSnap.key;
+            const u = uSnap.val();
+            // Kendini ekleme
+            if (key === uid) {
+              searchResults.textContent = "Kendini ekleyemezsin.";
+              return;
+            }
+            const entry = document.createElement("div");
+            entry.className = "search-result";
+            entry.innerHTML = `
+            <span>👤 ${u.name} – Puan: ${u.score || 0}</span>
+            <button>Ekle</button>
+          `;
+            const btn = entry.querySelector("button");
+            // Zaten arkadaş mı?
+            get(ref(db, `users/${uid}/friends/${key}`)).then((exSnap) => {
+              if (exSnap.exists()) {
+                btn.disabled = true;
+                btn.textContent = "Zaten Arkadaş";
+              }
+            });
+            btn.addEventListener("click", async () => {
+              await set(ref(db, `users/${uid}/friends/${key}`), true);
+              btn.disabled = true;
+              btn.textContent = "Eklendi";
+            });
+            searchResults.append(entry);
+          });
+        });
+
+        // Başlangıçta ve realtime güncellemede
+        await renderFriends();
+        onValue(friendsRef, renderFriends);
+      });
+    </script>
+  </body>
+</html>

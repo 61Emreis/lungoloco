@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Lungoloco - Quiz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body{background:linear-gradient(rgba(0,0,0,.4),rgba(0,0,0,.4)),url(arka-plan.png);color:#f0f0f0;background-size:cover}
+      header h1,footer{color:#00d1b2;margin:0;font-weight:700}
+      nav a{color:#f0f0f0;text-decoration:none;margin-left:1.5rem;font-weight:bold;transition:color .3s}
+      nav a:hover{color:#00d1b2}
+      .info{text-align:center;font-weight:700;margin-top:.5rem;color:#ffca28}
+      .quiz-selection{text-align:center;margin:2rem auto 1rem}
+      .quiz-selection h2{margin-bottom:1rem;font-size:1.8rem}
+      .quiz-selection button{background:#00d1b2;color:#003366;font-weight:700;padding:.75rem 1.5rem;border-radius:8px;border:none;cursor:pointer;margin:.5rem;transition:background .3s,transform .2s}
+      .quiz-selection button:hover{background:#007a71;transform:translateY(-2px)}
+      .quiz-container{flex:1;max-width:600px;margin:1rem auto;background:#003f5f;padding:2rem;border-radius:16px;box-shadow:0 6px 16px rgba(0,0,0,.3);display:none}
+      .timer{text-align:right;font-size:1.2rem;margin-bottom:1rem}
+      .question{text-align:center;font-size:1.6rem;margin-bottom:1.5rem}
+      .options{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1rem}
+      .option{background:#00d1b2;color:#003366;padding:.75rem 1rem;border:none;border-radius:10px;font-size:1rem;cursor:pointer;transition:background .3s,transform .2s}
+      .option:hover{background:#005377;transform:translateY(-2px)}
+      .option:disabled{opacity:.6;cursor:default}
+      .feedback{text-align:center;font-size:1.2rem;height:1.5rem;margin-bottom:1rem}
+      .feedback.correct{color:#8bc34a}.feedback.wrong{color:#f44336}
+      .result{text-align:center;font-size:1.5rem;margin-top:2rem}
+      footer{text-align:center;color:#b0bec5}
+    </style>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+      import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+      import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+      const firebaseConfig={apiKey:"AIzaSyDrE4teIGAHWsqrx_CjWIoqeb2tSWphyY8",authDomain:"lungoloco-b1005.firebaseapp.com",projectId:"lungoloco-b1005",storageBucket:"lungoloco-b1005.firebasestorage.app",messagingSenderId:"325454308006",appId:"1:325454308006:web:44149848db69002cc8ca67",measurementId:"G-R20ZS0WN7X"};
+      const app=initializeApp(firebaseConfig);
+      const auth=getAuth(app);
+      const db=getDatabase(app);
+
+            window.loginUser=()=>{window.location.href="auth.html";return false};
+    window.logoutUser = () => {
+  signOut(auth).then(() => (window.location.href = "auth.html"));
+  return false;
+};
+
+
+      /* ---------- Soru havuzu ---------- */
+      const questions = [
+          { en: "Pen", opts: ["Kalem", "Silgi", "Defter"], correct: "Kalem" },
+          { en: "Apple", opts: ["Elma", "Armut", "Üzüm"], correct: "Elma" },
+          { en: "Car", opts: ["Araba", "Ev", "Kitap"], correct: "Araba" },
+          { en: "Dog", opts: ["Köpek", "Kedi", "Fare"], correct: "Köpek" },
+          { en: "Table", opts: ["Masa", "Sandalye", "Kapı"], correct: "Masa" },
+          { en: "Sun", opts: ["Güneş", "Ay", "Yıldız"], correct: "Güneş" },
+          { en: "Window", opts: ["Pencere", "Duvar", "Zemin"], correct: "Pencere" },
+          { en: "Book", opts: ["Kitap", "Kalem", "Kağıt"], correct: "Kitap" },
+          { en: "Bag", opts: ["Çanta", "Kutu", "Bardak"], correct: "Çanta" },
+          { en: "Phone", opts: ["Telefon", "Bilgisayar", "Tablet"], correct: "Telefon" },
+          { en: "Chair", opts: ["Sandalye", "Tablet", "Saat"], correct: "Sandalye" },
+          { en: "Computer", opts: ["Bilgisayar", "Çatal", "Kaşık"], correct: "Bilgisayar" },
+          { en: "Door", opts: ["Kapı", "Buzdolabı", "Pantolon"], correct: "Kapı" },
+          { en: "Tree", opts: ["Ağaç", "Tablet", "Kitap"], correct: "Ağaç" },
+          { en: "Bird", opts: ["Kuş", "Köpek", "Kutu"], correct: "Kuş" },
+          { en: "Bottle", opts: ["Şişe", "Çanta", "Ev"], correct: "Şişe" },
+          { en: "Spoon", opts: ["Kaşık", "Çatal", "Bıçak"], correct: "Kaşık" },
+          { en: "Fork", opts: ["Çatal", "Şeker", "Kitap"], correct: "Çatal" },
+          { en: "Knife", opts: ["Bıçak", "Çatal", "Kutu"], correct: "Bıçak" },
+          { en: "School", opts: ["Okul", "Orman", "Göl"], correct: "Okul" },
+          { en: "Student", opts: ["Öğrenci", "Yıldız", "Top"], correct: "Öğrenci" },
+          { en: "Teacher", opts: ["Öğretmen", "Kapı", "Bardak"], correct: "Öğretmen" },
+          { en: "Fish", opts: ["Balık", "Ev", "Elma"], correct: "Balık" },
+          { en: "Milk", opts: ["Süt", "Kutu", "Masa"], correct: "Süt" },
+          { en: "Bread", opts: ["Ekmek", "Kitap", "Kahve"], correct: "Ekmek" },
+          { en: "Cheese", opts: ["Peynir", "Çay", "Yatak"], correct: "Peynir" },
+          { en: "Clock", opts: ["Saat", "Bilgisayar", "Şeker"], correct: "Saat" },
+          { en: "Shirt", opts: ["Gömlek", "Çanta", "Çay"], correct: "Gömlek" },
+          { en: "Shoes", opts: ["Ayakkabı", "Yatak", "Buzdolabı"], correct: "Ayakkabı" },
+          { en: "Pants", opts: ["Pantolon", "Telefon", "Kutu"], correct: "Pantolon" },
+          { en: "Bed", opts: ["Yatak", "Ev", "Kaşık"], correct: "Yatak" },
+          { en: "Pillow", opts: ["Yastık", "Defter", "Çatal"], correct: "Yastık" },
+          { en: "Notebook", opts: ["Defter", "Şişe", "Kapı"], correct: "Defter" },
+          { en: "Lamp", opts: ["Lamba", "Balon", "Ev"], correct: "Lamba" },
+          { en: "Picture", opts: ["Resim", "Bardak", "Kutu"], correct: "Resim" },
+          { en: "Mirror", opts: ["Ayna", "Bardak", "Tablet"], correct: "Ayna" },
+          { en: "Ball", opts: ["Top", "Silgi", "Mikrodalga"], correct: "Top" },
+          { en: "Watch", opts: ["Saat", "Televizyon", "Kapı"], correct: "Saat" },
+          { en: "Glasses", opts: ["Gözlük", "Çay", "Pasta"], correct: "Gözlük" },
+          { en: "Hat", opts: ["Şapka", "Balık", "Kalem"], correct: "Şapka" },
+          { en: "Television", opts: ["Televizyon", "Meyve suyu", "Yatak"], correct: "Televizyon" },
+          { en: "Radio", opts: ["Radyo", "Bıçak", "Göl"], correct: "Radyo" },
+          { en: "Fan", opts: ["Vantilatör", "Bardak", "Şapka"], correct: "Vantilatör" },
+          { en: "Heater", opts: ["Isıtıcı", "Kedi", "Kaşık"], correct: "Isıtıcı" },
+          { en: "Refrigerator", opts: ["Buzdolabı", "Balık", "Kapı"], correct: "Buzdolabı" },
+          { en: "Oven", opts: ["Fırın", "Masa", "Ayna"], correct: "Fırın" },
+          { en: "Microwave", opts: ["Mikrodalga", "Ev", "Kedi"], correct: "Mikrodalga" },
+          { en: "Toothbrush", opts: ["Diş fırçası", "Bıçak", "Pantolon"], correct: "Diş fırçası" },
+          { en: "Toothpaste", opts: ["Diş macunu", "Yatak", "Kitap"], correct: "Diş macunu" },
+          { en: "Soap", opts: ["Sabun", "Masa", "Tablet"], correct: "Sabun" },
+          { en: "Towel", opts: ["Havlu", "Silgi", "Kitap"], correct: "Havlu" },
+          { en: "Comb", opts: ["Tarak", "Çanta", "Çikolata"], correct: "Tarak" },
+          { en: "Shampoo", opts: ["Şampuan", "Ev", "Kapı"], correct: "Şampuan" },
+          { en: "Camera", opts: ["Kamera", "Elma", "Ev"], correct: "Kamera" },
+          { en: "Music", opts: ["Müzik", "Kutu", "Silgi"], correct: "Müzik" },
+          { en: "Movie", opts: ["Film", "Araba", "Defter"], correct: "Film" },
+          { en: "Game", opts: ["Oyun", "Bardak", "Armut"], correct: "Oyun" },
+          { en: "Balloon", opts: ["Balon", "Telefon", "Şeker"], correct: "Balon" },
+          { en: "Cake", opts: ["Pasta", "Ev", "Tablet"], correct: "Pasta" },
+          { en: "Ice Cream", opts: ["Dondurma", "Kağıt", "Kitap"], correct: "Dondurma" },
+          { en: "Candy", opts: ["Şeker", "Masa", "Ev"], correct: "Şeker" },
+          { en: "Chocolate", opts: ["Çikolata", "Kapı", "Buzdolabı"], correct: "Çikolata" },
+          { en: "Juice", opts: ["Meyve suyu", "Masa", "Silgi"], correct: "Meyve suyu" },
+          { en: "Water", opts: ["Su", "Yatak", "Defter"], correct: "Su" },
+          { en: "Coffee", opts: ["Kahve", "Kitap", "Çanta"], correct: "Kahve" },
+          { en: "Tea", opts: ["Çay", "Çatal", "Kaşık"], correct: "Çay" },
+          { en: "Train", opts: ["Tren", "Ev", "Kedi"], correct: "Tren" },
+          { en: "Bus", opts: ["Otobüs", "Kalem", "Tablet"], correct: "Otobüs" },
+          { en: "Airplane", opts: ["Uçak", "Mikrodalga", "Balık"], correct: "Uçak" },
+          { en: "Boat", opts: ["Tekne", "Şeker", "Gömlek"], correct: "Tekne" },
+          { en: "Mountain", opts: ["Dağ", "Saat", "Top"], correct: "Dağ" },
+          { en: "River", opts: ["Nehir", "Göl", "Ada"], correct: "Nehir" },
+          { en: "Lake", opts: ["Göl", "Tablet", "Defter"], correct: "Göl" },
+          { en: "Ocean", opts: ["Okyanus", "Telefon", "Ev"], correct: "Okyanus" },
+          { en: "Beach", opts: ["Plaj", "Kapı", "Pencere"], correct: "Plaj" },
+          { en: "Forest", opts: ["Orman", "Silgi", "Çanta"], correct: "Orman" },
+          { en: "Desert", opts: ["Çöl", "Yatak", "Şeker"], correct: "Çöl" },
+          { en: "Island", opts: ["Ada", "Kapı", "Ev"], correct: "Ada" },
+        ];
+// kısaltılmış örnek
+      function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}return arr}
+
+      /* ---------- DOM ---------- */
+      const info=document.getElementById("loginInfo");
+      const startBtn=document.querySelector(".quiz-selection button");
+      const selector=document.querySelector(".quiz-selection");
+      const qc=document.getElementById("quizContainer");
+      const timerE=document.getElementById("timer");
+      const qE=document.getElementById("question");
+      const optsD=document.getElementById("options");
+      const fbE=document.getElementById("feedback");
+      const resE=document.getElementById("result");
+
+      let idx=0,score=0,timerId=null,loggedIn=false,currentUser=null;
+               const loginLink  = document.getElementById("loginLink");
+const logoutLink = document.getElementById("logoutLink");
+
+const toggleAuthLinks = (loggedIn) => {
+  loginLink.style.display  = loggedIn ? "none" : "inline-block";
+  logoutLink.style.display = loggedIn ? "inline-block" : "none";
+};
+      onAuthStateChanged(auth,(user)=>{
+          toggleAuthLinks(!!user); 
+        loggedIn=!!user;
+        currentUser=user;
+        info.textContent=loggedIn?"":"🛈 Giriş yapmadığınız için puanlar hesabınıza eklenmez.";
+      });
+
+      startBtn.onclick=()=>{selector.style.display="none";qc.style.display="block";shuffle(questions);idx=0;score=0;showQ();};
+
+      function showQ(){clearInterval(timerId);fbE.textContent="";const q=questions[idx];qE.textContent=q.en;optsD.innerHTML="";shuffle([...q.opts]).forEach(o=>{const b=document.createElement("button");b.className="option";b.textContent=o;b.onclick=()=>choose(o);optsD.appendChild(b)});startTimer();}
+      function startTimer(){let t=15;timerE.textContent=`Zaman: ${t}s`;timerId=setInterval(()=>{t--;timerE.textContent=`Zaman: ${t}s`;if(t<=0){clearInterval(timerId);choose(null);}},1000);}
+      async function choose(ans){clearInterval(timerId);document.querySelectorAll(".option").forEach(b=>b.disabled=true);const q=questions[idx];const correct=ans===q.correct;fbE.textContent=correct?`Doğru!${loggedIn?" +10 puan":" (Puan eklenmedi)"}`:`Yanlış! Doğru: ${q.correct}`;fbE.className=`feedback ${correct?"correct":"wrong"}`;if(correct) score+=10;if(correct&&loggedIn){const uRef=ref(db,`users/${currentUser.uid}`);const snap=await get(uRef);const cur=snap.val()?.score||0;await update(uRef,{score:cur+10});}
+        idx++;setTimeout(()=>{if(idx<questions.length)showQ();else finish();},1500);
+      }
+      function finish(){qc.style.display="none";resE.textContent=`Quiz bitti! Toplam puan: ${score}${loggedIn?"":" (giriş yapmadığınız için kaydedilmedi)"}`;}
+    </script>
+  </head>
+  <body>
+    <header>
+        <h1><a href="index.html" class="logo-link">Lungoloco</a></h1>
+      <nav>
+        <a href="index.html">Anasayfa</a>
+        <a href="lesson.html">Dersler</a>
+        <a href="quiz.html">Quiz</a>
+        <a href="profile.html">Profil</a>
+        <a href="sirala.html">Sıralamalar</a>
+             <!-- nav içinde -->
+<a id="logoutLink" href="#" onclick="return logoutUser()">Çıkış Yap</a>
+<a id="loginLink"  href="#" onclick="return loginUser()">Giriş Yap</a>
+      </nav>
+    </header>
+
+    <div class="info" id="loginInfo"></div>
+
+    <section class="quiz-selection">
+      <h2>Kelime Quiz’i</h2>
+      <button>Başla</button>
+    </section>
+
+    <section class="quiz-container" id="quizContainer">
+      <div class="timer" id="timer">Zaman: 15s</div>
+      <div class="question" id="question"></div>
+      <div class="options" id="options"></div>
+      <div class="feedback" id="feedback"></div>
+    </section>
+
+    <div class="result" id="result"></div>
+  </body>
+</html>

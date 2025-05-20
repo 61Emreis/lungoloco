@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lungoloco - Profil</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+
+    <style>
+      body{font-family:"Nunito",sans-serif;color:#fff;background:linear-gradient(rgba(0,0,0,.4),rgba(0,0,0,.4)),url(arka-plan.png);background-size:cover;margin:0;padding:0}
+      header h1{color:#00d1b2;margin:0;font-weight:700}
+      nav a{color:#f0f0f0;text-decoration:none;margin-left:1.5rem;font-weight:bold;transition:color .3s}
+      nav a:hover{color:#00d1b2}
+      .badge{padding:.5rem 1rem;border-radius:.5rem;background:#eee;transition:background .3s}
+      .badge.active{background:#4caf50;color:#fff}
+      .badge-grid{display:flex;gap:.5rem}
+      .progress{margin:1rem 0}
+      .progress progress{width:100%;height:1rem}
+      .info{margin-top:.5rem;text-align:center;font-weight:700;color:#ffc107}
+      .button{display:inline-block;margin:.5rem 0;padding:.6rem 1.2rem;background:#00d1b2;color:#003366;border-radius:8px;font-weight:700;text-decoration:none}
+      .button:hover{filter:brightness(.95)}
+    </style>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+      import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+      const firebaseConfig={apiKey:"AIzaSyDrE4teIGAHWsqrx_CjWIoqeb2tSWphyY8",authDomain:"lungoloco-b1005.firebaseapp.com",projectId:"lungoloco-b1005",storageBucket:"lungoloco-b1005.firebasestorage.app",messagingSenderId:"325454308006",appId:"1:325454308006:web:44149848db69002cc8ca67",measurementId:"G-R20ZS0WN7X"};
+      const app=initializeApp(firebaseConfig);
+      const auth=getAuth(app);
+      const db=getDatabase(app);
+
+       window.loginUser=()=>{window.location.href="auth.html";return false};
+window.logoutUser = () => {
+  signOut(auth).then(() => (window.location.href = "auth.html"));
+  return false;
+};
+
+      const usernameEl=document.getElementById("username");
+      const emailEl=document.getElementById("userEmail");
+      const scoreEl=document.getElementById("userScore");
+      const progBar=document.getElementById("profileProgress");
+      const progTxt=document.getElementById("progressText");
+      const badges=["badgeStart","badgeIntermediate","badgeAdvanced"].map(id=>document.getElementById(id));
+      const friendsBtn=document.getElementById("friendsBtn");
+      let loggedIn=false;
+                     const loginLink  = document.getElementById("loginLink");
+const logoutLink = document.getElementById("logoutLink");
+
+const toggleAuthLinks = (loggedIn) => {
+  loginLink.style.display  = loggedIn ? "none" : "inline-block";
+  logoutLink.style.display = loggedIn ? "inline-block" : "none";
+};
+
+
+      onAuthStateChanged(auth,async(user)=>{
+          toggleAuthLinks(!!user); 
+        loggedIn=!!user;
+        if(!loggedIn){
+          usernameEl.textContent="Giriş yapınız";
+          emailEl.textContent="E-posta: –";
+          scoreEl.textContent="Puanın: –";
+          progBar.value=0;
+          progTxt.textContent="Giriş yapınca görebilirsiniz";
+          badges.forEach(b=>b.classList.remove("active"));
+          return;
+        }
+        const snap=await get(ref(db,`users/${user.uid}`));
+        const d=snap.val()||{};
+        usernameEl.textContent=d.name||user.displayName||"Kullanıcı";
+        emailEl.textContent=`E-posta: ${d.email||user.email}`;
+        const score=d.score||0;
+        scoreEl.textContent=`Puanın: ${score}`;
+        const pct=Math.min(100,Math.floor(score/100));
+        progBar.value=pct;
+        progTxt.textContent=`%${pct} başarı!`;
+        badges.forEach(b=>b.classList.remove("active"));
+        if(pct<40)badges[0].classList.add("active");
+        else if(pct<80)badges[1].classList.add("active");
+        else badges[2].classList.add("active");
+        friendsBtn.href="friends.html";
+      });
+
+      friendsBtn.onclick=()=>{
+        if(!loggedIn){alert("Arkadaş listesine erişmek için giriş yapınız.");return false;}
+        return true;
+      };
+    </script>
+  </head>
+  <body>
+    <header>
+     <h1><a href="index.html" class="logo-link">Lungoloco</a></h1>
+      <nav>
+        <a href="index.html">Anasayfa</a>
+        <a href="lesson.html">Dersler</a>
+        <a href="quiz.html">Quiz</a>
+        <a href="profile.html">Profil</a>
+        <a href="sirala.html">Sıralamalar</a>
+             <!-- nav içinde -->
+<a id="logoutLink" href="#" onclick="return logoutUser()">Çıkış Yap</a>
+<a id="loginLink"  href="#" onclick="return loginUser()">Giriş Yap</a>
+      </nav>
+    </header>
+
+    <div class="info" id="loginInfo"></div>
+
+    <section class="profile-summary">
+      <div class="profile-header">
+        <h2 id="username">–</h2>
+        <p id="userEmail">E-posta: –</p>
+        <p id="userScore">Puanın: –</p>
+      </div>
+      <div class="progress">
+        <h3>İlerleme Durumu</h3>
+        <progress id="profileProgress" value="0" max="100"></progress>
+        <p id="progressText">Giriş yapınca görebilirsiniz</p>
+      </div>
+      <div class="badges">
+        <h3>Rozetler</h3>
+        <div class="badge-grid">
+          <div id="badgeStart" class="badge">Başlangıç</div>
+          <div id="badgeIntermediate" class="badge">Orta Seviye</div>
+          <div id="badgeAdvanced" class="badge">İleri Seviye</div>
+        </div>
+      </div>
+      <div class="action-buttons">
+        <a href="#" class="button" id="friendsBtn">Arkadaş Listesi</a>
+        <a href="messages.html" class="button">Global Sohbet Kanalı</a>
+      </div>
+    </section>
+
+    <footer>&copy; 2025 Lungoloco. Tüm hakları saklıdır.</footer>
+  </body>
+</html>

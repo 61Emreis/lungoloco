@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lungoloco - İleri Seviye Test</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body {
+        background: linear-gradient(to right, #003366, #4ca1af);
+        color: #f0f0f0;
+      }
+
+      header {
+        background-color: #001f3f;
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      }
+
+      header h1 {
+        color: #00d1b2;
+        font-size: 1.8rem;
+      }
+
+      nav a {
+        color: #f0f0f0;
+        text-decoration: none;
+        margin-left: 1.5rem;
+        font-weight: bold;
+        transition: color 0.3s;
+      }
+
+      nav a:hover {
+        color: #00d1b2;
+      }
+
+      .lesson {
+        padding: 2rem;
+        max-width: 800px;
+        margin: 3rem auto;
+        background-color: #003f5f;
+        border-radius: 16px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        text-align: center;
+      }
+
+      h2 {
+        font-size: 1.6rem;
+        color: #ffffff;
+        margin-bottom: 1.5rem;
+      }
+
+      .question {
+        font-size: 1.3rem;
+        margin-bottom: 20px;
+      }
+
+      .options {
+        margin-top: 20px;
+      }
+
+      .option {
+        background-color: #00d1b2;
+        color: #003366;
+        border: none;
+        padding: 12px 25px;
+        margin: 10px;
+        cursor: pointer;
+        border-radius: 5px;
+        font-size: 16px;
+        transition: background-color 0.3s ease;
+      }
+
+      .option:hover {
+        background-color: #007199;
+      }
+
+      .result {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-top: 20px;
+        color: #00d1b2;
+      }
+
+      footer {
+        text-align: center;
+        padding: 1.5rem;
+        background-color: #001f3f;
+        color: #b0bec5;
+        margin-top: 3rem;
+      }
+    </style>
+    <script>
+      const questions = [
+        {
+          question: "What is the synonym of 'happy'?",
+          options: ["Sad", "Joyful", "Angry", "Bored"],
+          correct: "Joyful",
+        },
+        {
+          question: "Choose the correct sentence.",
+          options: ["I can speaks English.", "I can speak English.", "I speak can English.", "I speaks can English."],
+          correct: "I can speak English.",
+        },
+      ];
+
+      let currentQuestion = 0;
+      let score = 0;
+
+      function loadQuestion() {
+        const question = questions[currentQuestion];
+        document.getElementById("question").textContent = question.question;
+        const options = document.getElementById("options");
+        options.innerHTML = "";
+        question.options.forEach((option) => {
+          const optionElement = document.createElement("button");
+          optionElement.classList.add("option");
+          optionElement.textContent = option;
+          optionElement.onclick = () => checkAnswer(option);
+          options.appendChild(optionElement);
+        });
+      }
+
+      function checkAnswer(selected) {
+        const correctAnswer = questions[currentQuestion].correct;
+        if (selected === correctAnswer) {
+          score++;
+        }
+        currentQuestion++;
+
+        if (currentQuestion < questions.length) {
+          loadQuestion();
+        } else {
+          showResult();
+        }
+      }
+
+      function showResult() {
+        const result = document.getElementById("result");
+        result.textContent = `Test tamamlandı! Skorunuz: ${score} / ${questions.length}`;
+        document.getElementById("test-container").style.display = "none";
+      }
+
+      window.onload = loadQuestion;
+    </script>
+  </head>
+  <body>
+    <header>
+      <h1>Lungoloco</h1>
+      <nav>
+        <a href="index.html">Anasayfa</a>
+        <a href="lesson.html">Dersler</a>
+        <a href="quiz.html">Quiz</a>
+        <a href="profile.html">Profil</a>
+        <a href="auth.html" onclick="return logoutUser()">Çıkış Yap</a>
+        <a href="auth.html" onclick="return logoutUser()">Giriş Yap</a>
+      </nav>
+    </header>
+
+    <section class="lesson" id="test-container">
+      <h2>İleri Seviye Test</h2>
+      <div id="question" class="question"></div>
+      <div id="options" class="options"></div>
+    </section>
+
+    <section id="result" class="result"></section>
+
+    <footer>&copy; 2025 Lungoloco. Tüm hakları saklıdır.</footer>
+  </body>
+</html>

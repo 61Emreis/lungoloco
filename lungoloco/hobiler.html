@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lungoloco - Alıştırmalar</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(to right, #003366, #4ca1af);
+      color: #f0f0f0;
+      font-family: 'Nunito', sans-serif;
+      text-align: center;
+      padding: 20px;
+      user-select: none;
+    }
+
+    .question-box {
+      max-width: 700px;
+      margin: auto;
+      background-color: #003f5f;
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+      margin-top: 2rem;
+    }
+
+    .question-box h2 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .options {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    .option-btn {
+      padding: 1rem 1.5rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.3s;
+    }
+
+    .option-btn:hover {
+      transform: translateY(-3px);
+    }
+
+    .option-btn.undo-btn {
+      background-color: #ff6666;
+      color: #fff;
+      margin-right: 1rem;
+    }
+
+    .option-btn.undo-btn:hover {
+      background-color: #cc4444;
+    }
+
+    .option-btn.check-btn {
+      background-color: #ffaa00;
+      color: #003366;
+      font-weight: bold;
+    }
+
+    .option-btn.check-btn:hover {
+      background-color: #cc8800;
+    }
+
+    .option-btn.default {
+      background-color: #00d1b2;
+      color: #003366;
+    }
+
+    .option-btn.default:hover {
+      background-color: #007a71;
+    }
+
+    .feedback {
+      margin-top: 1rem;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    #selectedBox {
+      margin-top: 1rem;
+      min-height: 3rem;
+      border: 2px dashed #00d1b2;
+      padding: 0.7rem;
+      border-radius: 8px;
+      background: #002f4f;
+      font-size: 1.2rem;
+      color: #ffffff;
+    }
+
+    .next-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      padding: 1rem 2rem;
+      background-color: #00d1b2;
+      color: #003366;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 999;
+    }
+
+    input[type="text"] {
+      padding: 0.7rem;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      border: none;
+      margin-top: 1rem;
+      text-align: center;
+      color: #003366;
+    }
+
+    .match-container {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .drag-items, .drop-items {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .box, .drop-zone {
+      width: 200px;
+      height: 50px;
+      background-color: #00d1b2;
+      color: #003366;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .drop-zone {
+      background-color: #004f66;
+      border: 2px dashed #00d1b2;
+      color: white;
+    }
+    .exit-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 0.7rem 1.2rem;
+      background-color: #ff4d4d;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .exit-btn:hover {
+      background-color: #cc0000;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lungoloco Alıştırmalar</h1>
+  <button class="exit-btn" onclick="exitLesson()">Dersten Çık</button>
+
+  <div id="exercise-container" class="question-box"></div>
+<script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+  import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDrE4teIGAHWsqrx_CjWIoqeb2tSWphyY8",
+  authDomain: "lungoloco-b1005.firebaseapp.com",
+  projectId: "lungoloco-b1005",
+  storageBucket: "lungoloco-b1005.firebasestorage.app",
+  messagingSenderId: "325454308006",
+  appId: "1:325454308006:web:44149848db69002cc8ca67",
+  measurementId: "G-R20ZS0WN7X"
+};
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    let userRef;  // global scope
+  onAuthStateChanged(auth, async user => {
+    if (!user) return window.location.href = "auth.html";
+    const uid = user.uid;
+    userRef = ref(db, `users/${uid}`);
+    // ... diğer setup ...
+  });
+    const exercises = [
+     {
+         type: "multiple",
+         question: "‘Kitap okumak’ ifadesinin İngilizcesi nedir?",
+         options: ["to paint", "to read a book", "to swim"],
+         correct: "to read a book"
+     },
+     {
+         type: "imageMeaning",
+         question: "Bu hobi İngilizce'de ne olarak adlandırılır?",
+         image: "drawing.png",
+         answer: "drawing",
+         wrongOptions: ["cooking", "dancing", "running"]
+     },
+     {
+         type: "multiple",
+         question: "Which activity is usually done in water?",
+         options: ["cycling", "swimming", "reading"],
+         correct: "swimming"
+     },
+     {
+         type: "listening",
+         question: "İşittiğiniz cümleyi oluşturun:",
+         audio: "audio22.mp3",
+         answer: "My hobby is taking photos of nature"
+     },
+     {
+         type: "matching",
+         question: "Hobileri anlamlarıyla eşleştir:",
+         pairs: [
+         { word: "painting", match: "resim yapmak" },
+         { word: "cycling", match: "bisiklet sürmek" },
+         { word: "cooking", match: "yemek pişirmek" }
+         ]
+     },
+     {
+         type: "multiple",
+         question: "‘Dans etmek’ kelimesinin İngilizcesi nedir?",
+         options: ["dance", "sing", "run"],
+         correct: "dance"
+     },
+     {
+         type: "imageMeaning",
+         question: "Bu aktivitenin İngilizcesi nedir?",
+         image: "playing_chess.jpg",
+         answer: "playing chess",
+         wrongOptions: ["jogging", "cooking", "watching TV"]
+    },
+    {
+         type: "multiple",
+         question: "I usually ______ when I feel bored.",
+         options: ["watch a movie", "do homework", "clean the kitchen"],
+         correct: "watch a movie"
+    },
+    {
+         type: "listening",
+         question: "İşittiğiniz cümleyi oluşturun:",
+         audio: "audio23.mp3",
+         answer: "We go hiking every weekend"
+    },
+    {
+         type: "multiple",
+         question: "Which one is a musical hobby?",
+         options: ["knitting", "playing the piano", "fishing"],
+         correct: "playing the piano"
+    },
+    {
+         type: "matching",
+         question: "Boş zaman aktivitelerini eşleştir:",
+         pairs: [
+         { word: "reading", match: "kitap okuma" },
+         { word: "swimming", match: "yüzme" },
+         { word: "fishing", match: "balık tutma" }
+         ]
+     }
+];
+
+
+    let current = 0;
+    let wrongExercises = [];
+
+    function renderExercise() {
+    const container = document.getElementById("exercise-container");
+    container.innerHTML = "";
+
+    const ex = exercises[current];
+
+    // Başlık
+    const title = document.createElement("h2");
+    title.textContent = ex.question;
+    container.appendChild(title);
+
+    // Önceki "Devam Et" butonunu kaldır
+    document.querySelector(".next-btn")?.remove();
+
+    // Yeni "Devam Et" butonu
+    const nextBtn = document.createElement("button");
+    nextBtn.className = "next-btn";
+    nextBtn.textContent = "Devam Et";
+    nextBtn.onclick = nextExercise;
+    document.body.appendChild(nextBtn);
+
+    // ========================================
+    // 1. Dinleme Tipi Soru
+    // ========================================
+    if (ex.type === "listening") {
+      const audio = document.createElement("audio");
+      audio.controls = true;
+      audio.src = "audio/" + ex.audio;
+      container.appendChild(audio);
+
+      const selectedBox = document.createElement("div");
+      selectedBox.id = "selectedBox";
+      container.appendChild(selectedBox);
+
+      const selectedWords = [];
+      const wordOptions = document.createElement("div");
+      wordOptions.className = "options";
+
+      const allWords = ex.answer.split(" ");
+      const extraWords = ["the", "blue", "how", "do", "what", "price", "your", "new"];
+      const combinedWords = [...allWords, ...extraWords.sort(() => 0.5 - Math.random()).slice(0, 3)];
+      const shuffled = combinedWords.sort(() => 0.5 - Math.random());
+
+      shuffled.forEach(word => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn default";
+        btn.textContent = word;
+        btn.onclick = () => {
+          selectedWords.push(word);
+          selectedBox.textContent = selectedWords.join(" ");
+        };
+        wordOptions.appendChild(btn);
+      });
+
+      container.appendChild(wordOptions);
+
+      // Geri al ve kontrol et butonları
+      const buttonWrapper = document.createElement("div");
+      buttonWrapper.style.marginTop = "1.5rem";
+
+      const undoBtn = document.createElement("button");
+      undoBtn.textContent = "Geri Al";
+      undoBtn.className = "option-btn undo-btn";
+      undoBtn.onclick = () => {
+        selectedWords.pop();
+        selectedBox.textContent = selectedWords.join(" ");
+      };
+      buttonWrapper.appendChild(undoBtn);
+
+      const checkBtn = document.createElement("button");
+      checkBtn.textContent = "Kontrol Et";
+      checkBtn.className = "option-btn check-btn";
+
+      const feedback = document.createElement("div");
+      feedback.className = "feedback";
+
+      checkBtn.onclick = () => {
+        const userAnswer = selectedWords.join(" ").trim().toLowerCase();
+        const correctAnswer = ex.answer.toLowerCase();
+
+        if (userAnswer === correctAnswer) {
+          feedback.textContent = "✅ Doğru!";
+          const index = wrongExercises.indexOf(ex);
+          if (index !== -1) wrongExercises.splice(index, 1);
+        } else {
+          feedback.textContent = "❌ Yanlış! Cevap: " + ex.answer;
+          if (!wrongExercises.includes(ex)) wrongExercises.push(ex);
+        }
+      };
+
+      buttonWrapper.appendChild(checkBtn);
+      container.appendChild(buttonWrapper);
+      container.appendChild(feedback);
+    }
+
+    // ========================================
+    // 2. Çoktan Seçmeli Soru
+    // ========================================
+    else if (ex.type === "multiple") {
+      const optionBox = document.createElement("div");
+      optionBox.className = "options";
+
+      const feedback = document.createElement("div");
+      feedback.className = "feedback";
+      let answered = false;
+
+      ex.options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn default";
+        btn.textContent = opt;
+        btn.onclick = () => {
+          if (answered) return;
+          if (opt === ex.correct) {
+            feedback.textContent = "✅ Doğru!";
+          } else {
+            feedback.textContent = "❌ Yanlış! Doğru cevap: " + ex.correct;
+            if (!wrongExercises.includes(ex)) wrongExercises.push(ex);
+          }
+          answered = true;
+        };
+        optionBox.appendChild(btn);
+      });
+
+      container.appendChild(optionBox);
+      container.appendChild(feedback);
+    }
+
+    // ========================================
+    // 3. Görsel Anlam Soru
+    // ========================================
+    else if (ex.type === "imageMeaning") {
+      const containerRow = document.createElement("div");
+      containerRow.style.display = "flex";
+      containerRow.style.alignItems = "center";
+      containerRow.style.justifyContent = "center";
+      containerRow.style.gap = "2rem";
+      containerRow.style.flexWrap = "wrap";
+
+      const optionBox = document.createElement("div");
+      optionBox.className = "options";
+      optionBox.style.flex = "1";
+
+      const img = document.createElement("img");
+      img.src = "images/" + ex.image;
+      img.alt = "image question";
+      img.style.maxWidth = "180px";
+      img.style.borderRadius = "8px";
+      img.style.boxShadow = "0 0 8px rgba(0,0,0,0.3)";
+
+      containerRow.appendChild(optionBox);
+      containerRow.appendChild(img);
+      container.appendChild(containerRow);
+
+      const feedback = document.createElement("div");
+      feedback.className = "feedback";
+      feedback.style.marginTop = "1rem";
+
+      let answered = false;
+      const options = [ex.answer, ...ex.wrongOptions].sort(() => 0.5 - Math.random());
+
+      options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn default";
+        btn.textContent = opt;
+        btn.onclick = () => {
+          if (answered) return;
+          if (opt === ex.answer) {
+            feedback.textContent = "✅ Doğru!";
+          } else {
+            feedback.textContent = "❌ Yanlış! Doğru cevap: " + ex.answer;
+            if (!wrongExercises.includes(ex)) wrongExercises.push(ex);
+          }
+          answered = true;
+        };
+        optionBox.appendChild(btn);
+      });
+
+      container.appendChild(feedback);
+    }
+
+    // ========================================
+    // 4. Eşleştirme Soru
+    // ========================================
+    else if (ex.type === "matching") {
+      const matchContainer = document.createElement("div");
+      matchContainer.className = "match-container";
+
+      const dragItems = document.createElement("div");
+      dragItems.className = "drag-items";
+
+      const dropItems = document.createElement("div");
+      dropItems.className = "drop-items";
+
+      ex.pairs.forEach(pair => {
+        const drag = document.createElement("div");
+        drag.className = "box";
+        drag.textContent = pair.word;
+        drag.setAttribute("draggable", true);
+        drag.dataset.word = pair.word;
+
+        drag.addEventListener("dragstart", e => {
+          e.dataTransfer.setData("text/plain", pair.word);
+        });
+
+        dragItems.appendChild(drag);
+      });
+
+      ex.pairs.forEach(pair => {
+        const drop = document.createElement("div");
+        drop.className = "drop-zone";
+        drop.textContent = pair.match;
+        drop.dataset.match = pair.word;
+
+        drop.addEventListener("dragover", e => e.preventDefault());
+
+        drop.addEventListener("drop", e => {
+          e.preventDefault();
+          const droppedWord = e.dataTransfer.getData("text/plain");
+
+          if (droppedWord === drop.dataset.match) {
+            drop.textContent = `${pair.match} = ${droppedWord}`;
+            drop.style.backgroundColor = "#00d1b2";
+            drop.style.color = "#003366";
+            drop.dataset.correct = "true";
+          } else {
+            drop.style.backgroundColor = "#ff6666";
+            setTimeout(() => {
+              drop.style.backgroundColor = "#004f66";
+            }, 1000);
+
+            const feedback = document.querySelector(".feedback");
+            if (feedback) {
+              feedback.textContent = `❌ '${droppedWord}' yanlış eşleşme.`;
+              setTimeout(() => (feedback.textContent = ""), 2000);
+            }
+          }
+        });
+
+        dropItems.appendChild(drop);
+      });
+
+      matchContainer.appendChild(dragItems);
+      matchContainer.appendChild(dropItems);
+      container.appendChild(matchContainer);
+
+      const checkBtn = document.createElement("button");
+      checkBtn.textContent = "Kontrol Et";
+      checkBtn.className = "option-btn check-btn";
+
+      const feedback = document.createElement("div");
+      feedback.className = "feedback";
+
+      checkBtn.onclick = () => {
+        const allZones = dropItems.querySelectorAll(".drop-zone");
+        const allCorrect = [...allZones].every(zone => zone.dataset.correct === "true");
+
+        if (allCorrect) {
+          feedback.textContent = "✅ Tüm eşleştirmeler doğru!";
+        } else {
+          feedback.textContent = "❌ Bazı eşleştirmeler yanlış.";
+          if (!wrongExercises.includes(ex)) wrongExercises.push(ex);
+        }
+      };
+
+      container.appendChild(checkBtn);
+      container.appendChild(feedback);
+    }
+  }
+
+
+    function nextExercise() {
+      const ex = exercises[current];
+
+      if (ex.type === "listening") {
+        const selectedBox = document.getElementById("selectedBox");
+        if (selectedBox && selectedBox.textContent.trim() === "" && !wrongExercises.includes(ex)) {
+          wrongExercises.push(ex);
+        }
+      }
+
+      if (ex.type === "multiple") {
+        const feedback = document.querySelector(".feedback");
+        if (feedback && feedback.textContent === "" && !wrongExercises.includes(ex)) {
+          wrongExercises.push(ex);
+        }
+      }
+
+      if (ex.type === "imageMeaning") {
+        const input = document.querySelector("input[type='text']");
+        if (input && input.value.trim() === "" && !wrongExercises.includes(ex)) {
+          wrongExercises.push(ex);
+        }
+      }
+
+      current++;
+      if (current < exercises.length) {
+        renderExercise();
+      } else {
+        if (wrongExercises.length > 0) {
+          exercises.splice(0, exercises.length, ...wrongExercises);
+          wrongExercises = [];
+          current = 0;
+          renderExercise();
+        } else {
+          updateUserProgress();
+          document.getElementById("exercise-container").innerHTML =
+            `<h2 style="user-select: none;">🎉 Tüm alıştırmalar doğru tamamlandı!</h2>`;
+          document.querySelector(".next-btn")?.remove();
+        }
+      }
+    }
+
+    renderExercise();
+
+// script type="module" içinde
+function exitLesson() {
+  if (confirm("Dersi kapatmak istediğinize emin misiniz?")) {
+    window.location.href = "index.html";
+  }
+}
+document.querySelector(".exit-btn")
+        .addEventListener("click", exitLesson);
+
+                 async function updateUserProgress() {
+    if (!userRef) throw new Error("Henüz kullanıcı hazır değil!");
+    const snap = await get(userRef);
+    const data = snap.val() || {};
+    const newScore       = (data.score || 0) + 1500;
+    const newLessonLevel = (data.currentLesson || 0) < 10 ? 10 : data.currentLesson;
+    await update(userRef, {
+      score:       newScore,
+      currentLesson: newLessonLevel
+    });
+  }
+  
+  </script>
+</body>
+</html>

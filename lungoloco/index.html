@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lungoloco - Ana Sayfa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="style.css" />
+
+    <script type="module">
+      /* ============ Firebase SDK'leri ============ */
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+      import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+      import {
+        getDatabase,
+        ref,
+        get,
+        set,
+        serverTimestamp,
+        onValue,
+        remove,
+      } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+      /* ============ Firebase config ============ */
+      const firebaseConfig = {
+        apiKey: "AIzaSyDrE4teIGAHWsqrx_CjWIoqeb2tSWphyY8",
+        authDomain: "lungoloco-b1005.firebaseapp.com",
+        projectId: "lungoloco-b1005",
+        storageBucket: "lungoloco-b1005.firebasestorage.app",
+        messagingSenderId: "325454308006",
+        appId: "1:325454308006:web:44149848db69002cc8ca67",
+        measurementId: "G-R20ZS0WN7X",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getDatabase(app);
+
+            window.loginUser=()=>{window.location.href="auth.html";return false};
+   window.logoutUser = () => {
+  signOut(auth).then(() => (window.location.href = "auth.html"));
+  return false;
+};
+
+
+      /* ============ Yardımcı Fonksiyonlar ============ */
+      const scoreToLevel = (s = 0) => (s >= 10000 ? "C2" : s >= 8000 ? "C1" : s >= 6000 ? "B2" : s >= 4000 ? "B1" : s >= 2000 ? "A2" : "A1");
+      const order = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 };
+      const better = (l1, l2) => (order[l1] > order[l2] ? l1 : l2);
+      const trMap = {
+        A1: "A1 - Başlangıç",
+        A2: "A2 - Temel Kullanıcı",
+        B1: "B1 - Bağımsız Kullanıcı",
+        B2: "B2 - İleri Düzey",
+        C1: "C1 - Yetkin Kullanıcı",
+        C2: "C2 - Uzman Kullanıcı",
+      };
+
+      /* ============ UI Elemanları ============ */
+      const pb = document.getElementById("progressBar");
+      const pctTxt = document.getElementById("progressText");
+      const levelTxt = document.getElementById("levelText");
+      const langTxt = document.getElementById("languageLevel");
+      const noteInput = document.getElementById("noteInput");
+      const noteList = document.getElementById("noteList");
+      const saveBtn = document.getElementById("saveNoteBtn");
+
+      let currentUser = null; // oturum durumunu tut
+
+      /* ============ Çıkış ============ */
+window.logoutUser = () => {
+  signOut(auth).then(() => (window.location.href = "auth.html"));
+  return false;
+};
+
+      const loginLink  = document.getElementById("loginLink");
+const logoutLink = document.getElementById("logoutLink");
+
+const toggleAuthLinks = (loggedIn) => {
+  loginLink.style.display  = loggedIn ? "none" : "inline-block";
+  logoutLink.style.display = loggedIn ? "inline-block" : "none";
+};
+      /* ============ Giriş durumu dinleyicisi ============ */
+      onAuthStateChanged(auth, async (user) => {
+        currentUser = user; // global flag
+        toggleAuthLinks(!!user); 
+        // Giriş YAPMAMIŞSA => Placeholder bilgileri göster, not ekleme uyarısı
+        if (!user) {
+          pb.value = 0;
+          pctTxt.textContent = "Kayıt olunca görebilirsiniz";
+          levelTxt.textContent = "Kayıt olunca görebilirsiniz";
+          langTxt.textContent = "Kayıt olunca görebilirsiniz";
+          noteList.innerHTML = ""; // temizle
+          return; // hiçbir Firebase verisi dinleme
+        }
+
+        /* ---- GİRİŞ YAPMIŞ KULLANICI ---- */
+        const uid = user.uid;
+        const userRef = ref(db, `users/${uid}`);
+        const notesRef = ref(db, `users/${uid}/notes`);
+
+        // Yeni kullanıcı kaydı oluştur
+        if (!(await get(userRef)).exists()) {
+          await set(userRef, {
+            name: user.displayName || "",
+            email: user.email,
+            score: 0,
+            englishLevel: "A1",
+            createdAt: serverTimestamp(),
+          });
+        }
+
+        // İlerleme güncelle UI
+        const refreshStats = (u) => {
+          const score = u.score || 0;
+          const pct = Math.min(100, Math.floor((score / 10000) * 100));
+          pb.value = pct;
+          pctTxt.textContent = `%${pct} başarı!`;
+          const finalLevel = better(scoreToLevel(score), u.englishLevel || "A1");
+          langTxt.textContent = trMap[finalLevel];
+          let lbl = "Başlangıç";
+          if (pct >= 80) lbl = "Uzman";
+          else if (pct >= 60) lbl = "İleri";
+          else if (pct >= 40) lbl = "Orta";
+          else if (pct >= 20) lbl = "Temel";
+          levelTxt.textContent = lbl;
+        };
+
+        onValue(userRef, (s) => refreshStats(s.val() || {}));
+
+        // Notları dinle & göster
+        onValue(notesRef, (snap) => {
+          noteList.innerHTML = "";
+          const data = snap.val();
+          if (!data) return;
+          Object.entries(data).forEach(([id, n]) => {
+            const li = document.createElement("li");
+            li.className = "note-item";
+            li.textContent = n.text;
+            const del = document.createElement("button");
+            del.className = "delete-btn";
+            del.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            del.onclick = () => remove(ref(db, `users/${uid}/notes/${id}`));
+            li.appendChild(del);
+            noteList.appendChild(li);
+          });
+        });
+      });
+
+      /* ============ Not Kaydet Butonu ============ */
+      saveBtn.addEventListener("click", async () => {
+        if (!currentUser) {
+          alert("Not eklemek için lütfen giriş yapınız.");
+          return;
+        }
+        const txt = noteInput.value.trim();
+        if (!txt) return;
+        const ts = Date.now();
+        await set(ref(db, `users/${currentUser.uid}/notes/${ts}`), {
+          text: txt,
+          createdAt: serverTimestamp(),
+        });
+        noteInput.value = "";
+      });
+    </script>
+  </head>
+  <body>
+    <header>
+    <h1><a href="index.html" class="logo-link">Lungoloco</a></h1>
+      <nav>
+        <a href="index.html">Anasayfa</a>
+        <a href="lesson.html">Dersler</a>
+        <a href="quiz.html">Quiz</a>
+        <a href="profile.html">Profil</a>
+        <a href="sirala.html">Sıralamalar</a>
+     <!-- nav içinde -->
+<a id="logoutLink" href="#" onclick="return logoutUser()">Çıkış Yap</a>
+<a id="loginLink"  href="#" onclick="return loginUser()">Giriş Yap</a>
+
+      </nav>
+    </header>
+
+    <!-- Özet -->
+    <section class="user-summary">
+      <div class="progress">
+        <h3>İlerleme Durumu</h3>
+        <progress id="progressBar" value="0" max="100"></progress>
+        <p id="progressText">Kayıt olunca görebilirsiniz</p>
+      </div>
+      <div class="level">
+        <h3>Genel Seviye</h3>
+        <p id="levelText">Kayıt olunca görebilirsiniz</p>
+      </div>
+      <div class="language-level">
+        <h3>İngilizce Dil Derecesi</h3>
+        <p id="languageLevel">Kayıt olunca görebilirsiniz</p>
+      </div>
+    </section>
+
+    <!-- Notlar -->
+    <section class="notes-section">
+      <div class="note-container">
+        <div class="note-input">
+          <h2>Not Ekle</h2>
+          <textarea id="noteInput" placeholder="Notunuzu yazın..."></textarea>
+          <button id="saveNoteBtn">Kaydet</button>
+        </div>
+        <div class="note-list">
+          <h2>Notlarım</h2>
+          <ul id="noteList"></ul>
+        </div>
+      </div>
+    </section>
+
+    <footer>&copy; 2025 Lungoloco. Tüm hakları saklıdır.</footer>
+  </body>
+</html>

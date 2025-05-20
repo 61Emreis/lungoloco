@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lungoloco – Giriş Yap</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      :root {
+        --brand: #00d1b2;
+        --brand-dark: #ffffff;
+        --text-dark: #003366;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 1.8rem;
+        color: var(--brand);
+      }
+      header nav a {
+        color: #f0f0f0;
+        margin-left: 1.5rem;
+        text-decoration: none;
+        font-weight: 700;
+        transition: color 0.3s;
+      }
+      header nav a:hover {
+        color: var(--brand);
+      }
+
+      /* ---------- Hero Slider ---------- */
+      .hero {
+        max-width: 900px;
+        margin: 1rem auto 0;
+        position: relative;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+        height: 500px; /* slider görünür kalsın */
+      }
+      .hero img {
+        width: 100%;
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        animation: slide 12s infinite;
+      }
+      .hero img:nth-child(1) { animation-delay: 0s; }
+      .hero img:nth-child(2) { animation-delay: 4s; }
+      .hero img:nth-child(3) { animation-delay: 8s; }
+      @keyframes slide {
+        0%, 30%   { opacity: 1; }
+        33.33%, 100% { opacity: 0; }
+      }
+      .hero-caption {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 1rem 1.5rem;
+        background: rgba(0, 0, 0, 0.5);
+        font-size: 1.2rem;
+        font-weight: 700;
+      }
+
+      /* ---------- Feature section ---------- */
+      .features {
+        max-width: 900px;
+        margin: 2rem auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+      }
+      .feature-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        backdrop-filter: blur(4px);
+      }
+      .feature-card img {
+        width: 64px;
+        height: 64px;
+      }
+      .feature-card h3 {
+        margin: 0.8rem 0 0.4rem;
+        color: var(--brand);
+      }
+
+      /* ---------- Auth form ---------- */
+      .auth-container {
+        max-width: 400px;
+        margin: 2rem auto 3rem;
+        background: #0f19d0ee;
+        color: var(--text-dark);
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.25);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .auth-container h2 { text-align: center; margin-top: 0; }
+      .auth-container input {
+        padding: 0.8rem;
+        border: 1px solid #ffffff;
+        border-radius: 8px;
+        font-size: 1rem;
+      }
+      .auth-container button {
+        padding: 0.8rem;
+        background: var(--brand);
+        color: var(--text-dark);
+        font-weight: 700;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      .auth-container button:hover { background: var(--brand-dark); }
+      .auth-container a { color: var(--brand-dark); }
+
+      footer { text-align: center; margin: 2rem 0 1rem; color: #b0bec5; font-size: 0.9rem; }
+    </style>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+      import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyDrE4teIGAHWsqrx_CjWIoqeb2tSWphyY8",
+        authDomain: "lungoloco-b1005.firebaseapp.com",
+        projectId: "lungoloco-b1005",
+        storageBucket: "lungoloco-b1005.firebasestorage.app",
+        messagingSenderId: "325454308006",
+        appId: "1:325454308006:web:44149848db69002cc8ca67",
+        measurementId: "G-R20ZS0WN7X",
+      };
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+
+      window.loginUser = async () => {
+        const email = document.getElementById("emailInput").value.trim();
+        const password = document.getElementById("passwordInput").value;
+        if (!email || !password) return alert("Lütfen e‑posta ve şifre girin.");
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          alert("Giriş başarılı! Yönlendiriliyorsunuz...");
+          window.location.href = "index.html";
+        } catch (e) {
+          alert("Hata: " + e.message);
+        }
+      };
+    </script>
+  </head>
+  <body>
+    <header>
+     <h1><a href="index.html" class="logo-link">Lungoloco</a></h1>
+      <nav><a href="register.html">Kayıt Ol</a></nav>
+    </header>
+
+    <!-- ---------- Tanıtım Slider ---------- -->
+    <div class="hero">
+      <!-- Ekran oranına göre yüksekliği sabitle -->
+      <img src="lungo2.jpg" alt="Dil öğrenmek artık çok eğlenceli" />
+      <img src="lungo3.jpg" alt="Seviyene uygun derslerle ilerle" />
+      <img src="lungolo1.jpg" alt="Arkadaşlarınla yarış, rozetler topla" />
+      <div class="hero-caption">Dil öğrenmeyi oyunlaştıran platform</div>
+    </div>
+    </div>
+
+    <!-- ---------- Özellikler ---------- -->
+    <section class="features">
+      <div class="feature-card">
+        <img src="quiz.png" alt="Quiz" />
+        <h3>Eğlenceli Quizler</h3>
+        <p>Kelimeleri pratik yap, anında puan kazan ve sıralamada yüksel.</p>
+      </div>
+      <div class="feature-card">
+        <img src="dersler.png" alt="Ders" />
+        <h3>Seviyene Uygun Dersler</h3>
+        <p>A1'den C1'e kadar adım adım ilerleyip eksiklerini tamamla.</p>
+      </div>
+      <div class="feature-card">
+        <img src="sohbet.png" alt="Chat" />
+        <h3>Global Sohbet</h3>
+        <p>Dünya çapından öğrenenlerle mesajlaş, pratiğini artır.</p>
+      </div>
+    </section>
+
+    <!-- ---------- Giriş Formu ---------- -->
+    <section class="auth-container">
+      <h2>Hesabına Giriş Yap</h2>
+      <input id="emailInput" type="email" placeholder="E‑posta adresi" required />
+      <input id="passwordInput" type="password" placeholder="Şifre" required />
+      <button onclick="loginUser()">Giriş Yap</button>
+      <p style="text-align:center">Hesabın yok mu? <a href="register.html">Kayıt Ol</a></p>
+    </section>
+
+    <footer>&copy; 2025 Lungoloco. Tüm hakları saklıdır.</footer>
+  </body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lungoloco - Kayıt Ol</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Firebase SDK'ları -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDrE4teIGAHWsqrx_CjWIoqeb2tSWphyY8",
+  authDomain: "lungoloco-b1005.firebaseapp.com",
+  projectId: "lungoloco-b1005",
+  storageBucket: "lungoloco-b1005.firebasestorage.app",
+  messagingSenderId: "325454308006",
+  appId: "1:325454308006:web:44149848db69002cc8ca67",
+  measurementId: "G-R20ZS0WN7X"
+};
+
+    // Firebase'i başlat
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const rtdb = getDatabase(app);
+
+    window.registerUser = async () => {
+      const name     = document.getElementById("nameInput").value.trim();
+      const email    = document.getElementById("emailInput").value.trim();
+      const password = document.getElementById("passwordInput").value;
+
+      if (!name || !email || !password) {
+        alert("Lütfen tüm alanları doldurun.");
+        return;
+      }
+
+      try {
+        // 1) Email/şifre ile kayıt
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = userCred.user.uid;
+
+        // 2) Realtime Database'e kullanıcı verisini yaz
+        await set(ref(rtdb, 'users/' + uid), {
+          name: name,
+          email: email,
+          score: 0,
+          createdAt: new Date().toISOString()
+        });
+
+        alert("Kayıt başarılı! Seviyenizi belirledikten sonra kullanmaya başlayabilirsiniz...");
+        window.location.href = "seviyebelirleme.html";
+      } catch (err) {
+        console.error("Kayıt hatası:", err);
+        alert("Hata: " + err.message);
+      }
+    };
+  </script>
+</head>
+<body>
+  <header>
+   <h1><a href="index.html" class="logo-link">Lungoloco</a></h1>
+  </header>
+
+  <section class="auth-container">
+    <h2>Kayıt Ol</h2>
+    <input id="nameInput"     type="text"     placeholder="Kullanıcı Adı"       required />
+    <input id="emailInput"    type="email"    placeholder="E-posta adresi" required />
+    <input id="passwordInput" type="password" placeholder="Şifre"          required />
+    <button onclick="registerUser()">Kayıt Ol</button>
+    <p style="margin-top:1rem; text-align:center;">
+      Zaten hesabınız var mı? <a href="auth.html">Giriş Yap</a>
+    </p>
+  </section>
+
+  <footer>
+    &copy; 2025 Lungoloco. Tüm hakları saklıdır.
+  </footer>
+</body>
+</html>
